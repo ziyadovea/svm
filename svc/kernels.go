@@ -5,6 +5,16 @@ import (
 	"math"
 )
 
+// KernelName тип для имени ядра.
+type KernelName string
+
+// Определяем в константах существующие ядра.
+const (
+	LINEAR KernelName = "linear"
+	POLY   KernelName = "poly"
+	RBF    KernelName = "rbf"
+)
+
 // Kernel интерфейс для ядра.
 type Kernel interface {
 	Calculate(x, y []float64) float64
