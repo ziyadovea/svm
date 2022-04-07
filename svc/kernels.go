@@ -37,7 +37,7 @@ var _ Kernel = (*PolyKernel)(nil)
 // PolyKernel представляет собой полиномиальное ядро.
 type PolyKernel struct {
 	Coef0  float64
-	Degree int64
+	Degree int
 }
 
 // Calculate считает произведение двух векторов

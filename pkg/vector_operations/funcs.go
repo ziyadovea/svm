@@ -21,3 +21,23 @@ func EuclideanDistance(x, y []float64) float64 {
 	}
 	return math.Sqrt(result)
 }
+
+// CountOfUniques считает количество уникальных элементов в слайсе.
+func CountOfUniques(x []int) int {
+	set := make(map[int]struct{}, len(x))
+	for i := range x {
+		set[x[i]] = struct{}{}
+	}
+	return len(set)
+}
+
+// IsMatrixRectangular проверяет, что матрица является прямоугольной.
+func IsMatrixRectangular(x [][]float64) bool {
+	len0 := len(x[0])
+	for i := 1; i < len(x); i++ {
+		if len(x[i]) != len0 {
+			return false
+		}
+	}
+	return true
+}

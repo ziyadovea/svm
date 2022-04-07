@@ -2,6 +2,7 @@ package svc
 
 import (
 	"fmt"
+	"github.com/ziyadovea/svm/pkg/vector_operations"
 	"strings"
 )
 
@@ -19,7 +20,7 @@ type SVC struct {
 	C float64
 
 	// Degree - степень многочлена для полиномиального ядра.
-	Degree int64
+	Degree int
 
 	// Coef0 - свободный член для полиномиального ядра.
 	Coef0 float64
@@ -31,15 +32,21 @@ type SVC struct {
 	Tol float64
 
 	// MaxIters - максимальное количество итераций.
-	MaxIters int64
+	MaxIters int
 
 	// Индексы опорных векторов.
-	supports []int64
+	supports []int
 
 	// Параметры для обучения алгоритма.
-	nSamples  int64 // Число образцов
-	nFeatures int64 // Число характеристик
-	nClasses  int64 // Число классов
+	nSamples  int // Число образцов
+	nFeatures int // Число характеристик
+	nClasses  int // Число классов
+
+	// Матрица признаков.
+	x [][]float64
+
+	// Метки классов.
+	y []int
 
 	// Параметры для решения QP методом SMO.
 	b     float64
@@ -59,6 +66,11 @@ func NewSVC() *SVC {
 		Tol:        0.001,
 		MaxIters:   -1,
 		supports:   nil,
+		nSamples:   0,
+		nFeatures:  0,
+		nClasses:   0,
+		x:          nil,
+		y:          nil,
 		b:          0.0,
 		k:          0.0,
 		alpha:      0.0,
@@ -84,5 +96,45 @@ func (svc *SVC) SetKernelByName(kernelName string) error {
 	default:
 		return fmt.Errorf("unknown kernel name")
 	}
+	return nil
+}
+
+// Fit обучает алгоритм на обучающей выборке.
+func (svc *SVC) Fit(x [][]float64, y []int) error {
+	// Проверим валидность входных данных.
+	if err := svc.validateInput(x, y); err != nil {
+		return fmt.Errorf("invalid input data: %w", err)
+	}
+
+	// Запишем в поля структуры необходимые данные.
+	svc.nSamples = len(x)
+	svc.nFeatures = len(x[0])
+	svc.x = x
+	svc.y = y
+
+	//
+
+	return nil
+}
+
+// Predict классифицирует новые входные данные на основе обученной моодели.
+func (svc *SVC) Predict(x [][]float64) ([]int, error) {
+	return nil, nil
+}
+
+// validateInput проверяет валидность входных данных для обучения - массива меток и матрицы признаков.
+func (svc *SVC) validateInput(x [][]float64, y []int) error {
+	// Базовый SVM является бинарным - он работает только с 2 классами.
+	// Если в исходной разметке классов больше - надо выдать ошибку.
+	svc.nClasses = vector_operations.CountOfUniques(y)
+	if svc.nClasses != 2 {
+		return fmt.Errorf("incorrect number of class labels: expected 2, actual: %d", svc.nClasses)
+	}
+
+	// Проверим, что матрица признаков является прямоугольной.
+	if !vector_operations.IsMatrixRectangular(x) {
+		return fmt.Errorf("feature matrix must be rectangular")
+	}
+
 	return nil
 }

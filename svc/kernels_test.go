@@ -37,7 +37,7 @@ func TestLinearKernel_Calculate(t *testing.T) {
 func TestPolyKernel_Calculate(t *testing.T) {
 	type fields struct {
 		Coef0  float64
-		Degree int64
+		Degree int
 	}
 	type args struct {
 		x []float64
