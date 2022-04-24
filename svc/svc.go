@@ -3,77 +3,89 @@ package svc
 import (
 	"fmt"
 	"github.com/ziyadovea/svm/pkg/vector_operations"
+	"log"
+	"math"
+	"math/rand"
 	"strings"
+	"time"
 )
 
 // SVC (англ. Support Vector Classifier) - структура для представления
 // классификатора методом опорных векторов.
 type SVC struct {
 	// Для линейно неразделимой выборки используется kernel trick.
-	// kernelName - название ядра.
+	// Название ядра.
 	kernelName KernelName
 
-	// Kernel - ядро.
+	// Ядро.
 	Kernel Kernel
 
-	// C - параметр регуляризации.
+	// Кэш ядра - матрица скалярных произведений.
+	kernelCache [][]float64
+
+	// Параметр регуляризации.
 	C float64
 
-	// Degree - степень многочлена для полиномиального ядра.
+	// Степень многочлена для полиномиального ядра.
 	Degree int
 
-	// Coef0 - свободный член для полиномиального ядра.
+	// Свободный член для полиномиального ядра.
 	Coef0 float64
 
-	// Gamma - параметр для ядра 'rbf'.
+	// Параметр для ядра 'rbf'.
 	Gamma float64
 
-	// Tol - точность.
+	// Точность.
 	Tol float64
 
-	// MaxIters - максимальное количество итераций.
+	// Максимальное количество итераций.
 	MaxIters int
 
-	// Индексы опорных векторов.
-	supports []int
+	// Вектор с индексами опорных векторов.
+	supportVectorsIdx []int
 
-	// Параметры для обучения алгоритма.
-	nSamples  int // Число образцов
-	nFeatures int // Число характеристик
-	nClasses  int // Число классов
-
-	// Матрица признаков.
+	// Матрица признаков обучающей выборки.
 	x [][]float64
 
-	// Метки классов.
+	// Метки классов обучающей выборки.
 	y []int
 
+	// Порог для SVM.
+	b float64
+
+	// Число образцов обучающей выборки
+	nSamples int
+	// Число характеристик обучающей выборки
+	nFeatures int
+	// Число классов обучающей выборки
+	nClasses int
+
 	// Параметры для решения QP методом SMO.
-	b     float64
-	k     float64
-	alpha float64
+	k      float64
+	alphas []float64 // Альфа-параметры опорных векторов.
 }
 
 // NewSVC возвращает экземпляр SVC с параметрами по умолчанию.
 func NewSVC() *SVC {
 	return &SVC{
-		kernelName: "rbf",
-		Kernel:     &RbfKernel{Gamma: 1.0},
-		C:          1.0,
-		Degree:     3,
-		Coef0:      0.0,
-		Gamma:      1.0,
-		Tol:        0.001,
-		MaxIters:   -1,
-		supports:   nil,
-		nSamples:   0,
-		nFeatures:  0,
-		nClasses:   0,
-		x:          nil,
-		y:          nil,
-		b:          0.0,
-		k:          0.0,
-		alpha:      0.0,
+		kernelName:        "rbf",
+		Kernel:            &RbfKernel{Gamma: 1.0},
+		kernelCache:       nil,
+		C:                 1.0,
+		Degree:            3,
+		Coef0:             0.0,
+		Gamma:             1.0,
+		Tol:               0.001,
+		MaxIters:          10000,
+		supportVectorsIdx: nil,
+		x:                 nil,
+		y:                 nil,
+		b:                 0.0,
+		nSamples:          0,
+		nFeatures:         0,
+		nClasses:          0,
+		k:                 0.0,
+		alphas:            nil,
 	}
 }
 
@@ -100,6 +112,8 @@ func (svc *SVC) SetKernelByName(kernelName string) error {
 }
 
 // Fit обучает алгоритм на обучающей выборке.
+// x - матрица признаков.
+// y - массив меток, y = +1 или -1.
 func (svc *SVC) Fit(x [][]float64, y []int) error {
 	// Проверим валидность входных данных.
 	if err := svc.validateInput(x, y); err != nil {
@@ -112,14 +126,40 @@ func (svc *SVC) Fit(x [][]float64, y []int) error {
 	svc.x = x
 	svc.y = y
 
-	//
+	// Закэшируем произведения ядра.
+	svc.cacheKernel()
+
+	// Начнем обучение алгоритма.
+	// Для обучения алгоритма необходимо решение задачи QP.
+	// Воспользуемся популярным и эффективным методом решения этой задачи - SMO.
+	log.Println("SVM fitting started...")
+	svc.smo()
 
 	return nil
 }
 
 // Predict классифицирует новые входные данные на основе обученной моодели.
-func (svc *SVC) Predict(x [][]float64) ([]int, error) {
-	return nil, nil
+// x - матрица признаков.
+func (svc *SVC) Predict(x [][]float64) []int {
+	labels := make([]int, len(x))
+	for i := range x {
+		value := svc.f(x[i])
+		if value >= 0 {
+			labels[i] = 1
+		} else {
+			labels[i] = -1
+		}
+	}
+	return labels
+}
+
+// Вычисления f(x).
+func (svc *SVC) f(x []float64) float64 {
+	result := 0.0
+	for i := range svc.supportVectorsIdx {
+		result += svc.alphas[i] * float64(svc.y[i]) * svc.Kernel.Calculate(svc.x[i], x)
+	}
+	return result + svc.b
 }
 
 // validateInput проверяет валидность входных данных для обучения - массива меток и матрицы признаков.
@@ -137,4 +177,147 @@ func (svc *SVC) validateInput(x [][]float64, y []int) error {
 	}
 
 	return nil
+}
+
+// smo представляет реализацию метода SMO для решения задачи QP.
+func (svc *SVC) smo() {
+	log.Println("Started solving the QP problem by the SMO")
+
+	// Изначально alphas - массив размером nSamples из нулей.
+	svc.alphas = make([]float64, svc.nSamples)
+
+	iterCounter := 0
+	// Главный цикл. Он завершится раньше, если решение сойдется меньше, чем за
+	// максимальное количество итераций.
+	for iterCounter < svc.MaxIters {
+		log.Printf("%d SMO iteration out of %d\n", iterCounter, svc.MaxIters)
+
+		// Количество измененных параметров альфа за текущую итерацию
+		numChangedAlphas := 0
+		KKTViolated := false
+		for i := 0; i < svc.nSamples; i++ {
+			// Ошибка для i-ого экземпляра
+			errI := svc.f(svc.x[i]) - float64(svc.y[i])
+
+			// Проверяем выполнение условий ККТ
+			if (float64(svc.y[i])*errI < -svc.Tol && svc.alphas[i] < svc.C) ||
+				(float64(svc.y[i])*errI > svc.Tol && svc.alphas[i] > 0) {
+
+				KKTViolated = true
+
+				// Выбираем рандомный индекс j != i.
+				// Это является упрощенной эвристикой для выбора оптимальных параметров alpha[i] и alpha[j].
+				j := svc.getJ(i)
+
+				// Ошибка для j-ого экземпляра
+				errJ := svc.f(svc.x[j]) - float64(svc.y[j])
+
+				// Сохраняем старые значения параметров альфа
+				alphaIOld := svc.alphas[i]
+				alphaJOld := svc.alphas[j]
+
+				// Считаем границы L и H
+				L := 0.0
+				H := 0.0
+				if svc.y[i] != svc.y[j] {
+					L = math.Max(0, svc.alphas[j]-svc.alphas[i])
+					H = math.Min(svc.C, svc.C+svc.alphas[j]-svc.alphas[i])
+				} else {
+					L = math.Max(0, svc.alphas[j]+svc.alphas[i]-svc.C)
+					H = math.Min(svc.C, svc.alphas[j]+svc.alphas[i])
+				}
+
+				// Если границы равны, то переход к след. итерации
+				if L == H {
+					continue
+				}
+
+				// Считаем параметр
+				eta := 2*svc.kernelCache[i][j] - svc.kernelCache[i][j] - svc.kernelCache[j][i]
+
+				// Если значение >=0, то переход к след. итерации
+				if eta >= 0 {
+					continue
+				}
+
+				// Обновляем значения параметров альфа
+				svc.alphas[j] -= (float64(svc.y[j]) * (errI - errJ)) / eta
+				if svc.alphas[j] > H {
+					svc.alphas[j] = H
+				} else if svc.alphas[j] < L {
+					svc.alphas[j] = L
+				}
+
+				// Проверим разность параметров альфа
+				if svc.alphas[j]-alphaJOld < svc.Tol {
+					continue
+				}
+
+				// Определим значение параметра alpha[i]
+				svc.alphas[i] += float64(svc.y[i]) * float64(svc.y[j]) * (alphaJOld - svc.alphas[j])
+
+				// Находим значение параметра b
+				b1 := svc.b - errI - float64(svc.y[i])*(svc.alphas[i]-alphaIOld)*svc.kernelCache[i][j] -
+					float64(svc.y[j])*(svc.alphas[j]-alphaJOld)*svc.kernelCache[i][j]
+				b2 := svc.b - errJ - float64(svc.y[i])*(svc.alphas[i]-alphaIOld)*svc.kernelCache[i][j] -
+					float64(svc.y[j])*(svc.alphas[j]-alphaJOld)*svc.kernelCache[j][i]
+
+				if 0 < svc.alphas[i] && svc.alphas[i] < svc.C {
+					svc.b = b1
+				} else if 0 < svc.alphas[j] && svc.alphas[j] < svc.C {
+					svc.b = b2
+				} else {
+					svc.b = (b1 + b2) / 2
+				}
+
+				// Изменим количество измененных значений альфа
+				numChangedAlphas += 1
+			}
+		}
+
+		if !KKTViolated {
+			break
+		}
+
+		if numChangedAlphas == 0 {
+			iterCounter++
+		} else {
+			iterCounter = 0
+		}
+	}
+
+	// Теперь надо сохранить индексы опорных векторов
+	svc.supportVectorsIdx = make([]int, 0)
+	for i := 0; i < svc.nSamples; i++ {
+		if svc.alphas[i] > svc.Tol {
+			svc.supportVectorsIdx = append(svc.supportVectorsIdx, i)
+		}
+	}
+}
+
+// Возвращает случайное значение в диапазоне [0, svc.nSamples - 1], не равное i.
+func (svc *SVC) getJ(i int) int {
+	rand.Seed(time.Now().UnixNano())
+	res := rand.Intn(svc.nSamples)
+	for res != i {
+		res = rand.Intn(svc.nSamples)
+	}
+	return res
+}
+
+// Кэшируем значения скалярных произведений ядра,
+// чтобы брать значения из кэша, а не считать на каждой итерации.
+func (svc *SVC) cacheKernel() {
+	// Инициализация матрицы.
+	svc.kernelCache = make([][]float64, svc.nSamples)
+	for i := 0; i < svc.nSamples; i++ {
+		svc.kernelCache[i] = make([]float64, svc.nSamples)
+	}
+
+	// Заполнение значениями.
+	for i := 0; i < svc.nSamples; i++ {
+		for j := 0; j < svc.nSamples; j++ {
+			svc.kernelCache[i][j] = svc.Kernel.Calculate(svc.x[i], svc.x[j])
+		}
+	}
 }

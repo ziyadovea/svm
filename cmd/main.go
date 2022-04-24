@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "github.com/ziyadovea/svm/svc"
 
 func main() {
-	fmt.Println("Привет, ВКР!")
+	cls := svc.NewSVC()
 }
