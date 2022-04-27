@@ -2,6 +2,7 @@ package vector_operations
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -207,6 +208,46 @@ func Test_isMatrixRectangular(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := IsMatrixRectangular(tt.args.x); got != tt.want {
 				t.Errorf("isMatrixRectangular() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetUniques(t *testing.T) {
+	type args struct {
+		x []int
+	}
+	tests := []struct {
+		name string
+		args args
+		want []int
+	}{
+		{
+			name: "Test1",
+			args: args{
+				x: []int{},
+			},
+			want: []int{},
+		},
+		{
+			name: "Test2",
+			args: args{
+				x: []int{1, 2, 3},
+			},
+			want: []int{1, 2, 3},
+		},
+		{
+			name: "Test3",
+			args: args{
+				x: []int{1, 1, 1, 2, 2},
+			},
+			want: []int{1, 2},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := GetUniques(tt.args.x); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetUniques() = %v, want %v", got, tt.want)
 			}
 		})
 	}

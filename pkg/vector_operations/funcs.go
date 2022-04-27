@@ -1,6 +1,9 @@
 package vector_operations
 
-import "math"
+import (
+	"math"
+	"sort"
+)
 
 // ScalarProduct считает скалярное произведение двух векторов
 // по формуле z = <x, y> = x1*y1 + x2*y2 + ... + xn*yn.
@@ -24,11 +27,29 @@ func EuclideanDistance(x, y []float64) float64 {
 
 // CountOfUniques считает количество уникальных элементов в слайсе.
 func CountOfUniques(x []int) int {
-	set := make(map[int]struct{}, len(x))
+	set := make(map[int]struct{}, 0)
 	for i := range x {
 		set[x[i]] = struct{}{}
 	}
 	return len(set)
+}
+
+// GetUniques возвращает уникальные элементы слайса x.
+func GetUniques(x []int) []int {
+	set := make(map[int]struct{}, 0)
+	for i := range x {
+		set[x[i]] = struct{}{}
+	}
+
+	res := make([]int, 0, len(set))
+	for k, _ := range set {
+		res = append(res, k)
+	}
+	sort.Slice(res, func(i, j int) bool {
+		return res[i] < res[j]
+	})
+
+	return res
 }
 
 // IsMatrixRectangular проверяет, что матрица является прямоугольной.

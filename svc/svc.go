@@ -129,6 +129,12 @@ func (svc *SVC) Fit(x [][]float64, y []int) error {
 	// Закэшируем произведения ядра.
 	svc.cacheKernel()
 
+	// Сначала опорными являются все вектора.
+	svc.supportVectorsIdx = make([]int, svc.nSamples)
+	for i := 0; i < svc.nSamples; i++ {
+		svc.supportVectorsIdx[i] = i
+	}
+
 	// Начнем обучение алгоритма.
 	// Для обучения алгоритма необходимо решение задачи QP.
 	// Воспользуемся популярным и эффективным методом решения этой задачи - SMO.
@@ -159,6 +165,7 @@ func (svc *SVC) f(x []float64) float64 {
 	for i := range svc.supportVectorsIdx {
 		result += svc.alphas[i] * float64(svc.y[i]) * svc.Kernel.Calculate(svc.x[i], x)
 	}
+	fmt.Printf("pred row = %f\n", result+svc.b)
 	return result + svc.b
 }
 
@@ -194,16 +201,15 @@ func (svc *SVC) smo() {
 
 		// Количество измененных параметров альфа за текущую итерацию
 		numChangedAlphas := 0
-		KKTViolated := false
 		for i := 0; i < svc.nSamples; i++ {
+			fmt.Printf("alpphas = %v\n", svc.alphas)
 			// Ошибка для i-ого экземпляра
 			errI := svc.f(svc.x[i]) - float64(svc.y[i])
+			fmt.Printf("err i = %f\n", errI)
 
 			// Проверяем выполнение условий ККТ
 			if (float64(svc.y[i])*errI < -svc.Tol && svc.alphas[i] < svc.C) ||
 				(float64(svc.y[i])*errI > svc.Tol && svc.alphas[i] > 0) {
-
-				KKTViolated = true
 
 				// Выбираем рандомный индекс j != i.
 				// Это является упрощенной эвристикой для выбора оптимальных параметров alpha[i] и alpha[j].
@@ -211,6 +217,7 @@ func (svc *SVC) smo() {
 
 				// Ошибка для j-ого экземпляра
 				errJ := svc.f(svc.x[j]) - float64(svc.y[j])
+				fmt.Printf("err j = %f\n", errJ)
 
 				// Сохраняем старые значения параметров альфа
 				alphaIOld := svc.alphas[i]
@@ -233,7 +240,7 @@ func (svc *SVC) smo() {
 				}
 
 				// Считаем параметр
-				eta := 2*svc.kernelCache[i][j] - svc.kernelCache[i][j] - svc.kernelCache[j][i]
+				eta := 2*svc.kernelCache[i][j] - svc.kernelCache[i][i] - svc.kernelCache[j][j]
 
 				// Если значение >=0, то переход к след. итерации
 				if eta >= 0 {
@@ -249,7 +256,7 @@ func (svc *SVC) smo() {
 				}
 
 				// Проверим разность параметров альфа
-				if svc.alphas[j]-alphaJOld < svc.Tol {
+				if math.Abs(svc.alphas[j]-alphaJOld) < svc.Tol {
 					continue
 				}
 
@@ -275,15 +282,11 @@ func (svc *SVC) smo() {
 			}
 		}
 
-		if !KKTViolated {
+		if numChangedAlphas == 0 {
 			break
 		}
 
-		if numChangedAlphas == 0 {
-			iterCounter++
-		} else {
-			iterCounter = 0
-		}
+		iterCounter++
 	}
 
 	// Теперь надо сохранить индексы опорных векторов
@@ -299,7 +302,7 @@ func (svc *SVC) smo() {
 func (svc *SVC) getJ(i int) int {
 	rand.Seed(time.Now().UnixNano())
 	res := rand.Intn(svc.nSamples)
-	for res != i {
+	for res == i {
 		res = rand.Intn(svc.nSamples)
 	}
 	return res
