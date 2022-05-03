@@ -10,9 +10,9 @@ type KernelName string
 
 // Определяем в константах существующие ядра.
 const (
-	LINEAR KernelName = "linear"
-	POLY   KernelName = "poly"
-	RBF    KernelName = "rbf"
+	Linear KernelName = "linear"
+	Poly   KernelName = "poly"
+	Rbf    KernelName = "rbf"
 )
 
 // Kernel интерфейс для ядра.

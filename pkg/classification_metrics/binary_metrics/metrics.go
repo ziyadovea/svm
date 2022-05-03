@@ -2,6 +2,7 @@ package binary_metrics
 
 import (
 	"fmt"
+	"math"
 )
 
 // GetConfusionMatrix вычисляет матрицу ошибок.
@@ -53,25 +54,57 @@ func Accuracy(yTrue []int, yPred []int) float64 {
 // Precision вычисляет метрику классификации Precision.
 func Precision(yTrue []int, yPred []int) float64 {
 	cm, _ := GetConfusionMatrix(yTrue, yPred)
-	return float64(cm[1][1]) / float64(cm[1][1]+cm[0][1])
+	res := float64(cm[1][1]) / float64(cm[1][1]+cm[0][1])
+	if math.IsNaN(res) {
+		return 0.0
+	}
+	return res
 }
 
 // Recall вычисляет метрику классификации Recall.
 func Recall(yTrue []int, yPred []int) float64 {
 	cm, _ := GetConfusionMatrix(yTrue, yPred)
-	return float64(cm[1][1]) / float64(cm[1][1]+cm[1][0])
+	res := float64(cm[1][1]) / float64(cm[1][1]+cm[1][0])
+	if math.IsNaN(res) {
+		return 0.0
+	}
+	return res
 }
 
 // FScore вычисляет метрику классификации F-мера.
 func FScore(yTrue []int, yPred []int) float64 {
 	precision := Precision(yTrue, yPred)
 	recall := Recall(yTrue, yPred)
-	return 2 * precision * recall / (precision + recall)
+	res := 2 * precision * recall / (precision + recall)
+	if math.IsNaN(res) {
+		return 0.0
+	}
+	return res
 }
 
-// ExtendedFScore вычисляет метрику классификации расширенная F-мера.
-func ExtendedFScore(yTrue []int, yPred []int, beta float64) float64 {
+// FBetaScore вычисляет метрику классификации расширенная F-мера.
+func FBetaScore(yTrue []int, yPred []int, beta float64) float64 {
 	precision := Precision(yTrue, yPred)
 	recall := Recall(yTrue, yPred)
-	return (1 + beta*beta) * precision * recall / (beta*beta*precision + recall)
+	res := (1 + beta*beta) * precision * recall / (beta*beta*precision + recall)
+	if math.IsNaN(res) {
+		return 0.0
+	}
+	return res
+}
+
+// BinaryClassificationReport вовзращает отчет по метрикам бинарной классификации.
+func BinaryClassificationReport(yTrue []int, yPred []int) (cm [2][2]int, accuracy, precision, recall, f1 float64, reportString string) {
+	cm, reportString = GetConfusionMatrix(yTrue, yPred)
+	accuracy = Accuracy(yTrue, yPred)
+	precision = Precision(yTrue, yPred)
+	recall = Recall(yTrue, yPred)
+	f1 = FScore(yTrue, yPred)
+	reportString += fmt.Sprintf(`
+Accuracy  = %.3f
+Precision = %.3f
+Recall    = %.3f
+F-score   = %.3f
+`, accuracy, precision, recall, f1)
+	return
 }

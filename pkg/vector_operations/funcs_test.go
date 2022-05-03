@@ -252,3 +252,150 @@ func TestGetUniques(t *testing.T) {
 		})
 	}
 }
+
+func TestCount(t *testing.T) {
+	type args struct {
+		x  []int
+		el int
+	}
+	tests := []struct {
+		name string
+		args args
+		want int
+	}{
+		{
+			name: "Test1",
+			args: args{
+				x:  []int{1, 2, 3},
+				el: 0,
+			},
+			want: 0,
+		},
+		{
+			name: "Test2",
+			args: args{
+				x:  []int{1, 2, 3},
+				el: 1,
+			},
+			want: 1,
+		},
+		{
+			name: "Test3",
+			args: args{
+				x:  []int{1, 1, 1},
+				el: 1,
+			},
+			want: 3,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Count(tt.args.x, tt.args.el); got != tt.want {
+				t.Errorf("Count() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCounter(t *testing.T) {
+	type args struct {
+		x []int
+	}
+	tests := []struct {
+		name string
+		args args
+		want map[int]int
+	}{
+		{
+			name: "Test1",
+			args: args{
+				x: []int{1, 2, 3, 1, 1, 2, 2, 2},
+			},
+			want: map[int]int{
+				1: 3,
+				2: 4,
+				3: 1,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Counter(tt.args.x); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Counter() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAverage(t *testing.T) {
+	type args struct {
+		x []float64
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Test1",
+			args: args{
+				x: []float64{2, 4, 6, 8, 10},
+			},
+			want: "6.000",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Average(tt.args.x); fmt.Sprintf("%.3f", got) != tt.want {
+				t.Errorf("Average() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsBinary(t *testing.T) {
+	type args struct {
+		x []int
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "Test ok",
+			args: args{
+				x: []int{0, 1, 1, 1, 0, 1, 1},
+			},
+			want: true,
+		},
+		{
+			name: "Test ok only 1",
+			args: args{
+				x: []int{1, 1, 1, 1, 1, 1, 1},
+			},
+			want: true,
+		},
+		{
+			name: "Test ok only 0",
+			args: args{
+				x: []int{0, 0, 0, 0},
+			},
+			want: true,
+		},
+		{
+			name: "Test not ok",
+			args: args{
+				x: []int{0, 2, 1, 1, 1, 0, 1, 1},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsBinary(tt.args.x); got != tt.want {
+				t.Errorf("IsBinary() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

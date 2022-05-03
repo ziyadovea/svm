@@ -12,9 +12,10 @@ func TestGetConfusionMatrix(t *testing.T) {
 		yPred []int
 	}
 	tests := []struct {
-		name string
-		args args
-		want [2][2]int
+		name  string
+		args  args
+		want  [2][2]int
+		want1 string
 	}{
 		{
 			name: "Test1",
@@ -26,13 +27,24 @@ func TestGetConfusionMatrix(t *testing.T) {
 				{4, 4},
 				{3, 7},
 			},
+			want1: `
+Confusion matrix
+ -------
+| 4 | 4 |
+ -------
+| 3 | 7 |
+ -------
+`,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := GetConfusionMatrix(tt.args.yTrue, tt.args.yPred)
+			got, got1 := GetConfusionMatrix(tt.args.yTrue, tt.args.yPred)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetConfusionMatrix() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("GetConfusionMatrix() got = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
@@ -150,7 +162,7 @@ func TestFScore(t *testing.T) {
 	}
 }
 
-func TestExtendedFScore(t *testing.T) {
+func TestFBetaScore(t *testing.T) {
 	type args struct {
 		yTrue []int
 		yPred []int
@@ -170,11 +182,89 @@ func TestExtendedFScore(t *testing.T) {
 			},
 			want: "0.667",
 		},
+		{
+			name: "Test2",
+			args: args{
+				yTrue: []int{1, 1, -1, -1, 1, -1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, -1},
+				yPred: []int{1, -1, 1, 1, 1, -1, 1, 1, 1, -1, 1, -1, -1, 1, 1, 1, -1, -1},
+				beta:  0.5,
+			},
+			want: "0.648",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ExtendedFScore(tt.args.yTrue, tt.args.yPred, tt.args.beta); fmt.Sprintf("%.3f", got) != tt.want {
+			if got := FBetaScore(tt.args.yTrue, tt.args.yPred, tt.args.beta); fmt.Sprintf("%.3f", got) != tt.want {
 				t.Errorf("ExtendedFScore() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestBinaryClassificationReport(t *testing.T) {
+	type args struct {
+		yTrue []int
+		yPred []int
+	}
+	tests := []struct {
+		name             string
+		args             args
+		wantCm           [2][2]int
+		wantAccuracy     string
+		wantPrecision    string
+		wantRecall       string
+		wantF1           string
+		wantReportString string
+	}{
+		{
+			name: "Test1",
+			args: args{
+				yTrue: []int{1, 1, -1, -1, 1, -1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, -1},
+				yPred: []int{1, -1, 1, 1, 1, -1, 1, 1, 1, -1, 1, -1, -1, 1, 1, 1, -1, -1},
+			},
+			wantCm: [2][2]int{
+				{4, 4},
+				{3, 7},
+			},
+			wantAccuracy:  "0.611",
+			wantPrecision: "0.636",
+			wantRecall:    "0.700",
+			wantF1:        "0.667",
+			wantReportString: `
+Confusion matrix
+ -------
+| 4 | 4 |
+ -------
+| 3 | 7 |
+ -------
+
+Accuracy  = 0.611
+Precision = 0.636
+Recall    = 0.700
+F-score   = 0.667
+`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotCm, gotAccuracy, gotPrecision, gotRecall, gotF1, gotReportString := BinaryClassificationReport(tt.args.yTrue, tt.args.yPred)
+			if !reflect.DeepEqual(gotCm, tt.wantCm) {
+				t.Errorf("BinaryClassificationReport() gotCm = %v, want %v", gotCm, tt.wantCm)
+			}
+			if fmt.Sprintf("%.3f", gotAccuracy) != tt.wantAccuracy {
+				t.Errorf("BinaryClassificationReport() gotAccuracy = %v, want %v", gotAccuracy, tt.wantAccuracy)
+			}
+			if fmt.Sprintf("%.3f", gotPrecision) != tt.wantPrecision {
+				t.Errorf("BinaryClassificationReport() gotPrecision = %v, want %v", gotPrecision, tt.wantPrecision)
+			}
+			if fmt.Sprintf("%.3f", gotRecall) != tt.wantRecall {
+				t.Errorf("BinaryClassificationReport() gotRecall = %v, want %v", gotRecall, tt.wantRecall)
+			}
+			if fmt.Sprintf("%.3f", gotF1) != tt.wantF1 {
+				t.Errorf("BinaryClassificationReport() gotF1 = %v, want %v", gotF1, tt.wantF1)
+			}
+			if gotReportString != tt.wantReportString {
+				t.Errorf("BinaryClassificationReport() gotReportString = %v, want %v", gotReportString, tt.wantReportString)
 			}
 		})
 	}

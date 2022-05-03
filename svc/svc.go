@@ -2,6 +2,7 @@ package svc
 
 import (
 	"fmt"
+	"github.com/ziyadovea/svm"
 	"github.com/ziyadovea/svm/pkg/vector_operations"
 	"log"
 	"math"
@@ -9,6 +10,9 @@ import (
 	"strings"
 	"time"
 )
+
+// Проврим, что структура SVC удовлетворяет интеерфейсу Classifier
+var _ svm.Classifier = (*SVC)(nil)
 
 // SVC (англ. Support Vector Classifier) - структура для представления
 // классификатора методом опорных векторов.
@@ -93,17 +97,17 @@ func NewSVC() *SVC {
 // Возвращает ошибку в случае неизвестного ядра.
 func (svc *SVC) SetKernelByName(kernelName string) error {
 	switch KernelName(strings.ToLower(kernelName)) {
-	case LINEAR:
-		svc.kernelName = LINEAR
+	case Linear:
+		svc.kernelName = Linear
 		svc.Kernel = &LinearKernel{}
-	case POLY:
-		svc.kernelName = POLY
+	case Poly:
+		svc.kernelName = Poly
 		svc.Kernel = &PolyKernel{
 			Coef0:  svc.Coef0,
 			Degree: svc.Degree,
 		}
-	case RBF:
-		svc.kernelName = RBF
+	case Rbf:
+		svc.kernelName = Rbf
 		svc.Kernel = &RbfKernel{Gamma: svc.Gamma}
 	default:
 		return fmt.Errorf("unknown kernel name")

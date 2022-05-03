@@ -27,14 +27,11 @@ func EuclideanDistance(x, y []float64) float64 {
 
 // CountOfUniques считает количество уникальных элементов в слайсе.
 func CountOfUniques(x []int) int {
-	set := make(map[int]struct{}, 0)
-	for i := range x {
-		set[x[i]] = struct{}{}
-	}
-	return len(set)
+	return len(GetUniques(x))
 }
 
-// GetUniques возвращает уникальные элементы слайса x.
+// GetUniques возвращает уникальные элементы слайса x
+// в отсортированном порядке.
 func GetUniques(x []int) []int {
 	set := make(map[int]struct{}, 0)
 	for i := range x {
@@ -57,6 +54,47 @@ func IsMatrixRectangular(x [][]float64) bool {
 	len0 := len(x[0])
 	for i := 1; i < len(x); i++ {
 		if len(x[i]) != len0 {
+			return false
+		}
+	}
+	return true
+}
+
+// Counter возвращает мапу вида "элемент : количество таких элементов в слайсе".
+func Counter(x []int) map[int]int {
+	uniqs := GetUniques(x)
+	res := make(map[int]int, len(uniqs))
+	for _, uniq := range uniqs {
+		res[uniq] = Count(x, uniq)
+	}
+	return res
+}
+
+// Count возвращает число вхождений элемента el в слайс x.
+func Count(x []int, el int) int {
+	res := 0
+	for _, xx := range x {
+		if xx == el {
+			res++
+		}
+	}
+	return res
+}
+
+// Average возвращает среднее значение слайса x.
+func Average(x []float64) float64 {
+	res := 0.0
+	for _, item := range x {
+		res += item
+	}
+	return res / float64(len(x))
+}
+
+// IsBinary возвращает true, если x является бинарным (состоит только из 0 и 1),
+// иначе - false.
+func IsBinary(x []int) bool {
+	for _, item := range x {
+		if item != 0 && item != 1 {
 			return false
 		}
 	}
