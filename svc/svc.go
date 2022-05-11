@@ -2,16 +2,18 @@ package svc
 
 import (
 	"fmt"
-	"github.com/ziyadovea/svm"
-	"github.com/ziyadovea/svm/pkg/vector_operations"
 	"log"
 	"math"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/jinzhu/copier"
+	"github.com/ziyadovea/svm"
+	"github.com/ziyadovea/svm/pkg/vector_operations"
 )
 
-// Проврим, что структура SVC удовлетворяет интеерфейсу Classifier
+// Проверим, что структура SVC удовлетворяет интерфейсу Classifier.
 var _ svm.Classifier = (*SVC)(nil)
 
 // SVC (англ. Support Vector Classifier) - структура для представления
@@ -65,7 +67,6 @@ type SVC struct {
 	nClasses int
 
 	// Параметры для решения QP методом SMO.
-	k      float64
 	alphas []float64 // Альфа-параметры опорных векторов.
 }
 
@@ -88,7 +89,6 @@ func NewSVC() *SVC {
 		nSamples:          0,
 		nFeatures:         0,
 		nClasses:          0,
-		k:                 0.0,
 		alphas:            nil,
 	}
 }
@@ -117,7 +117,7 @@ func (svc *SVC) SetKernelByName(kernelName string) error {
 
 // Fit обучает алгоритм на обучающей выборке.
 // x - матрица признаков.
-// y - массив меток, y = +1 или -1.
+// y - слайс меток, y = +1 или -1.
 func (svc *SVC) Fit(x [][]float64, y []int) error {
 	// Проверим валидность входных данных.
 	if err := svc.validateInput(x, y); err != nil {
@@ -169,7 +169,6 @@ func (svc *SVC) f(x []float64) float64 {
 	for i := range svc.supportVectorsIdx {
 		result += svc.alphas[i] * float64(svc.y[i]) * svc.Kernel.Calculate(svc.x[i], x)
 	}
-	fmt.Printf("pred row = %f\n", result+svc.b)
 	return result + svc.b
 }
 
@@ -206,10 +205,8 @@ func (svc *SVC) smo() {
 		// Количество измененных параметров альфа за текущую итерацию
 		numChangedAlphas := 0
 		for i := 0; i < svc.nSamples; i++ {
-			fmt.Printf("alpphas = %v\n", svc.alphas)
 			// Ошибка для i-ого экземпляра
 			errI := svc.f(svc.x[i]) - float64(svc.y[i])
-			fmt.Printf("err i = %f\n", errI)
 
 			// Проверяем выполнение условий ККТ
 			if (float64(svc.y[i])*errI < -svc.Tol && svc.alphas[i] < svc.C) ||
@@ -221,7 +218,6 @@ func (svc *SVC) smo() {
 
 				// Ошибка для j-ого экземпляра
 				errJ := svc.f(svc.x[j]) - float64(svc.y[j])
-				fmt.Printf("err j = %f\n", errJ)
 
 				// Сохраняем старые значения параметров альфа
 				alphaIOld := svc.alphas[i]
@@ -282,7 +278,7 @@ func (svc *SVC) smo() {
 				}
 
 				// Изменим количество измененных значений альфа
-				numChangedAlphas += 1
+				numChangedAlphas++
 			}
 		}
 
@@ -327,4 +323,13 @@ func (svc *SVC) cacheKernel() {
 			svc.kernelCache[i][j] = svc.Kernel.Calculate(svc.x[i], svc.x[j])
 		}
 	}
+}
+
+// Clone возвращает копию SVM.
+func (svc *SVC) Clone() (svm.Classifier, error) {
+	res := &SVC{}
+	if err := copier.Copy(res, svc); err != nil {
+		return nil, err
+	}
+	return res, nil
 }

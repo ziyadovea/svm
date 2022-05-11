@@ -2,14 +2,15 @@ package cross_validation
 
 import (
 	"fmt"
+	"sort"
+	"sync"
+
 	"github.com/ziyadovea/svm"
 	cls_metrics "github.com/ziyadovea/svm/pkg/classification_metrics"
 	"github.com/ziyadovea/svm/pkg/classification_metrics/binary_metrics"
 	"github.com/ziyadovea/svm/pkg/classification_metrics/multiclass_metrics"
 	"github.com/ziyadovea/svm/pkg/vector_operations"
 	"golang.org/x/sync/errgroup"
-	"sort"
-	"sync"
 )
 
 // KFoldCVScore реализует K-fold кросс валидацию.
@@ -32,21 +33,26 @@ func KFoldCVScore(cls svm.Classifier, x [][]float64, y []int, nSplits int,
 	eg := new(errgroup.Group)
 	mu := sync.Mutex{}
 	for _, data := range cvData {
-		d := data
+		data := data
+		cls, err := cls.Clone()
+		if err != nil {
+			return nil, err
+		}
+
 		eg.Go(func() error {
-			err := cls.Fit(d.XTrain, d.YTrain)
+			err := cls.Fit(data.XTrain, data.YTrain)
 			if err != nil {
 				return err
 			}
 
-			yPred := cls.Predict(d.XTest)
+			yPred := cls.Predict(data.XTest)
 
 			for _, metric := range filteredMetrics {
 				mu.Lock()
 				if _, ok := res[metric]; ok {
-					res[metric] = append(res[metric], calculateMetric(d.YTest, yPred, metric))
+					res[metric] = append(res[metric], calculateMetric(data.YTest, yPred, metric))
 				} else {
-					res[metric] = []float64{calculateMetric(d.YTest, yPred, metric)}
+					res[metric] = []float64{calculateMetric(data.YTest, yPred, metric)}
 				}
 				mu.Unlock()
 			}

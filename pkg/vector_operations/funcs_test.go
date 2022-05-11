@@ -399,3 +399,41 @@ func TestIsBinary(t *testing.T) {
 		})
 	}
 }
+
+func TestSortByValue(t *testing.T) {
+	type args struct {
+		m map[int]int
+	}
+	tests := []struct {
+		name string
+		args args
+		want PairList
+	}{
+		{
+			name: "Test1",
+			args: args{
+				m: map[int]int{
+					1: 34,
+					2: 12,
+					3: 56,
+					4: 2,
+					5: 35,
+				},
+			},
+			want: []Pair{
+				{3, 56},
+				{5, 35},
+				{1, 34},
+				{2, 12},
+				{4, 2},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := SortByValue(tt.args.m); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("SortByValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
