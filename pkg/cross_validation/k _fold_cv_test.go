@@ -355,6 +355,10 @@ type MockClassifier struct {
 	predictImpl func(x [][]float64) []int
 }
 
+func (m *MockClassifier) Clone() (svm.Classifier, error) {
+	return m, nil
+}
+
 func (m *MockClassifier) Fit(x [][]float64, y []int) error {
 	return m.fitImpl(x, y)
 }
