@@ -19,7 +19,7 @@ import (
 func KFoldCVScore(cls svm.Classifier, x [][]float64, y []int, nSplits int,
 	metrics ...cls_metrics.ClassificationMetric) (map[cls_metrics.ClassificationMetric][]float64, error) {
 	if nSplits < 2 {
-		return nil, fmt.Errorf("nSpluts must be at least 2, actual: %d", nSplits)
+		return nil, fmt.Errorf("nSplits must be at least 2, actual: %d", nSplits)
 	}
 
 	// Проверим, является ли задача бинарной

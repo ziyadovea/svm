@@ -102,7 +102,7 @@ func IsBinary(x []int) bool {
 }
 
 // SortByValue сортирует мапу по значению по убыванию.
-func SortByValue(m map[int]int) PairList {
+func SortByValue(m map[int]float64) PairList {
 	pl := make(PairList, len(m))
 	i := 0
 	for k, v := range m {
@@ -115,7 +115,7 @@ func SortByValue(m map[int]int) PairList {
 
 type Pair struct {
 	Key   int
-	Value int
+	Value float64
 }
 
 type PairList []Pair

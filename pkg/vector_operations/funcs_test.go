@@ -402,7 +402,7 @@ func TestIsBinary(t *testing.T) {
 
 func TestSortByValue(t *testing.T) {
 	type args struct {
-		m map[int]int
+		m map[int]float64
 	}
 	tests := []struct {
 		name string
@@ -412,7 +412,7 @@ func TestSortByValue(t *testing.T) {
 		{
 			name: "Test1",
 			args: args{
-				m: map[int]int{
+				m: map[int]float64{
 					1: 34,
 					2: 12,
 					3: 56,

@@ -23,6 +23,9 @@ type MultiSVC struct {
 	// Карта SVM-ов для каждого бинарного случая.
 	// Ключ - метка класса, значение - классификатор.
 	machines map[int]*SVC
+
+	// Слайс меток обучающего набора, отранжированный по частоте встречаемости.
+	labels []int
 }
 
 // NewMultiSVC возвращает экземпляр MultiSVC с параметрами по умолчанию.
@@ -48,6 +51,7 @@ func NewMultiSVC() *MultiSVC {
 			alphas:            nil,
 		},
 		machines: nil,
+		labels:   nil,
 	}
 }
 
@@ -82,18 +86,9 @@ func (m *MultiSVC) Fit(x [][]float64, y []int) error {
 		return fmt.Errorf("invalid input data: %w", err)
 	}
 
-	// Отранжируем список меток по частоте встречаемости класса.
-	// И сохраним его для того, чтобы классифицировать новые данные,
-	// начиная с самого большого класса.
-	classesCount := vector_operations.Counter(y)
-	pairList := vector_operations.SortByValue(classesCount)
-	labels := make([]int, 0, len(pairList))
-	for _, pair := range pairList {
-		labels = append(labels, pair.Key)
-	}
-
 	// Выделим память под все бинарные классификаторы. Их число равно количеству классов.
-	m.nClasses = vector_operations.CountOfUniques(y)
+	m.labels = vector_operations.GetUniques(y)
+	m.nClasses = len(m.labels)
 	m.machines = make(map[int]*SVC, m.nClasses)
 
 	// Создаем errgroup.Group для обучения каждого бинарного классификатора в отдельной горутине.
@@ -102,7 +97,7 @@ func (m *MultiSVC) Fit(x [][]float64, y []int) error {
 	mu := sync.Mutex{}
 
 	// Классификация методом One-vs-All
-	for _, label := range vector_operations.GetUniques(y) {
+	for _, label := range m.labels {
 		label := label
 		eg.Go(func() error {
 			// Помечаем текущий класс как +1, все остальные - как -1
@@ -160,14 +155,24 @@ func (m *MultiSVC) validateInput(x [][]float64, y []int) error {
 // x - матрица признаков.
 func (m *MultiSVC) Predict(x [][]float64) []int {
 	res := make([]int, len(x))
-
-	// Классификация будет начинаться с самого частого класса в тренировочном датасете.
-
-	//for _, machine := range m.machines {
-	//
-	//}
-
+	for i := range x {
+		res[i] = m.predictOne(x[i])
+	}
 	return res
+}
+
+// Возвращает метку класса, к которой обученный классификатор отнес объект с признаковым описанием x.
+func (m *MultiSVC) predictOne(x []float64) int {
+	results := make(map[int]float64, len(m.labels))
+
+	// Начинем классификацию с самого частого класса
+	for _, label := range m.labels {
+		results[label] = m.machines[label].f(x)
+	}
+
+	// Найдем класс с наиболее вероятным результатом
+	pl := vector_operations.SortByValue(results)
+	return pl[0].Key
 }
 
 // Clone возвращает копию мультиклассового SVM.
