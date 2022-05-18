@@ -148,6 +148,12 @@ func (m *MultiSVC) validateInput(x [][]float64, y []int) error {
 	if !vector_operations.IsMatrixRectangular(x) {
 		return fmt.Errorf("feature matrix must be rectangular")
 	}
+
+	// Проверим, что все данные размечены
+	if len(x) != len(y) {
+		return fmt.Errorf("not all data is labeled")
+	}
+
 	return nil
 }
 
