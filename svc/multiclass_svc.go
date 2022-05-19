@@ -22,7 +22,7 @@ type MultiSVC struct {
 
 	// Карта SVM-ов для каждого бинарного случая.
 	// Ключ - метка класса, значение - классификатор.
-	machines map[int]*SVC
+	Machines map[int]*SVC
 
 	// Слайс уникальных меток обучающего набора.
 	labels []int
@@ -50,7 +50,7 @@ func NewMultiSVC() *MultiSVC {
 			nClasses:          0,
 			alphas:            nil,
 		},
-		machines: nil,
+		Machines: nil,
 		labels:   nil,
 	}
 }
@@ -89,7 +89,7 @@ func (m *MultiSVC) Fit(x [][]float64, y []int) error {
 	// Выделим память под все бинарные классификаторы. Их число равно количеству классов.
 	m.labels = vector_operations.GetUniques(y)
 	m.nClasses = len(m.labels)
-	m.machines = make(map[int]*SVC, m.nClasses)
+	m.Machines = make(map[int]*SVC, m.nClasses)
 
 	// Создаем errgroup.Group для обучения каждого бинарного классификатора в отдельной горутине.
 	eg := new(errgroup.Group)
@@ -128,7 +128,7 @@ func (m *MultiSVC) Fit(x [][]float64, y []int) error {
 
 			// Добавляем в слайс машин уже обученный экземпляр SVC
 			mu.Lock()
-			m.machines[label] = svc
+			m.Machines[label] = svc
 			mu.Unlock()
 
 			return nil
@@ -173,7 +173,7 @@ func (m *MultiSVC) predictOne(x []float64) int {
 
 	// Начинем классификацию с самого частого класса
 	for _, label := range m.labels {
-		results[label] = m.machines[label].f(x)
+		results[label] = m.Machines[label].f(x)
 	}
 
 	// Найдем класс с наиболее вероятным результатом
