@@ -39,7 +39,7 @@ func GetUniques(x []int) []int {
 	}
 
 	res := make([]int, 0, len(set))
-	for k, _ := range set {
+	for k := range set {
 		res = append(res, k)
 	}
 	sort.Slice(res, func(i, j int) bool {

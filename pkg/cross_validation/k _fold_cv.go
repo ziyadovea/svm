@@ -49,11 +49,7 @@ func KFoldCVScore(cls svm.Classifier, x [][]float64, y []int, nSplits int,
 
 			for _, metric := range filteredMetrics {
 				mu.Lock()
-				if _, ok := res[metric]; ok {
-					res[metric] = append(res[metric], calculateMetric(data.YTest, yPred, metric))
-				} else {
-					res[metric] = []float64{calculateMetric(data.YTest, yPred, metric)}
-				}
+				res[metric] = append(res[metric], calculateMetric(data.YTest, yPred, metric))
 				mu.Unlock()
 			}
 
@@ -207,7 +203,7 @@ func filterMetrics(isBinary bool, metrics ...cls_metrics.ClassificationMetric) [
 	}
 
 	res := make([]cls_metrics.ClassificationMetric, 0, len(set))
-	for k, _ := range set {
+	for k := range set {
 		res = append(res, k)
 	}
 	sort.Slice(res, func(i, j int) bool {

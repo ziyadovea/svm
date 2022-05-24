@@ -388,7 +388,7 @@ func TestIsBinary(t *testing.T) {
 			args: args{
 				x: []int{0, 2, 1, 1, 1, 0, 1, 1},
 			},
-			want: true, // todo
+			want: false,
 		},
 	}
 	for _, tt := range tests {
