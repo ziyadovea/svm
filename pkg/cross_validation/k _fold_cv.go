@@ -161,29 +161,11 @@ func filterMetrics(isBinary bool, metrics ...cls_metrics.ClassificationMetric) [
 			switch metric {
 			case cls_metrics.Accuracy:
 				set[cls_metrics.Accuracy] = struct{}{}
-			case cls_metrics.Precision:
+			case cls_metrics.Precision, cls_metrics.PrecisionMicro, cls_metrics.PrecisionMacro, cls_metrics.PrecisionWeighted:
 				set[cls_metrics.Precision] = struct{}{}
-			case cls_metrics.Recall:
+			case cls_metrics.Recall, cls_metrics.RecallMicro, cls_metrics.RecallMacro, cls_metrics.RecallWeighted:
 				set[cls_metrics.Recall] = struct{}{}
-			case cls_metrics.F1:
-				set[cls_metrics.F1] = struct{}{}
-			case cls_metrics.PrecisionMacro:
-				fallthrough
-			case cls_metrics.PrecisionMicro:
-				fallthrough
-			case cls_metrics.PrecisionWeighted:
-				set[cls_metrics.Precision] = struct{}{}
-			case cls_metrics.RecallMacro:
-				fallthrough
-			case cls_metrics.RecallMicro:
-				fallthrough
-			case cls_metrics.RecallWeighted:
-				set[cls_metrics.Recall] = struct{}{}
-			case cls_metrics.F1Macro:
-				fallthrough
-			case cls_metrics.F1Micro:
-				fallthrough
-			case cls_metrics.F1Weighted:
+			case cls_metrics.F1, cls_metrics.F1Micro, cls_metrics.F1Macro, cls_metrics.F1Weighted:
 				set[cls_metrics.F1] = struct{}{}
 			}
 		} else {
